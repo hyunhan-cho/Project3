@@ -87,7 +87,7 @@ void playPlaceholderGame(const string& name) {
 }
 
 int main() {
-    setFontSize(20, 40);   //  글자 크기 조절
+    setFontSize(20, 40);   
     resizeConsole();       //  콘솔 창 크기 조절
 
     int choice;
