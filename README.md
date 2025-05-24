@@ -13,9 +13,7 @@ Sudoku : 사용자 입력 기반 퍼즐 검증 기능 포함
 Snake (예정) : 게임 루프 및 충돌 처리 구현 예정
 
 🗂️ 폴더 구조
-bash
-복사
-편집
+
 /MiniGameProject
 ├── main.cpp              # 게임 메뉴 및 메인 실행 루프
 ├── tetris/
