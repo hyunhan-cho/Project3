@@ -128,6 +128,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="chatbot.cpp" />
+    <ClCompile Include="hangman.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="maze_solver.cpp" />
     <ClCompile Include="minesweeper.cpp" />
@@ -136,6 +138,8 @@
     <ClCompile Include="tetris.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="chatbot.h" />
+    <ClInclude Include="hangman.h" />
     <ClInclude Include="maze_solver.h" />
     <ClInclude Include="minesweeper.h" />
     <ClInclude Include="snake.h" />

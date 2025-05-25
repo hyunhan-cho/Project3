@@ -9,6 +9,8 @@
 #include "snake.h"
 #include "sudoku.h"
 #include "minesweeper.h"
+#include "hangman.h"
+#include "chatbot.h"
 
 using namespace std;
 
@@ -17,21 +19,21 @@ void setColor(int color) {
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
 }
 
-// 콘솔 창 크기 조절
+// 콘솔 창 크기 조절 (더 넓고 길게)
 void resizeConsole() {
-    system("mode con: cols=100 lines=40");
+    system("mode con: cols=140 lines=45"); // 넓게 확보
 }
 
-// 콘솔 글자 크기 조절
-void setFontSize(int width, int height) {
+// 콘솔 글자 크기 조절 (폰트: Consolas, 글자당 폭 설정)
+void setFontSize(int width = 12, int height = 28) {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_FONT_INFOEX cfi;
     cfi.cbSize = sizeof(cfi);
     GetCurrentConsoleFontEx(hOut, FALSE, &cfi);
 
-    cfi.dwFontSize.X = width;    // 글자 가로
-    cfi.dwFontSize.Y = height;   // 글자 세로
-    wcscpy_s(cfi.FaceName, L"Consolas"); // 폰트 이름
+    cfi.dwFontSize.X = width;      // 가로 글자 폭
+    cfi.dwFontSize.Y = height;     // 세로 글자 높이
+    wcscpy_s(cfi.FaceName, L"Consolas");
 
     SetCurrentConsoleFontEx(hOut, FALSE, &cfi);
 }
@@ -41,25 +43,21 @@ void drawMenuUI(int color) {
     system("cls");
     setColor(color);
     cout << R"(
-
     ("`-''-/").___..--''"`-._                 *                             
      `6_ 6  )   `-.  (     ).`-.__.`)     *                  *             
-     (_Y_.)'  ._   )  `._ `. ``-..-'             *                        
-   _..`--'_..-_/  /--'_.' ,'                          *                   
-  (il),-''  (li),'  ((!.-'                *                          *     
+     (_Y_.)'  ._   )  `._ `. ``-..-'             *                       
+   _..`--'_..-_/  /--'_.' ,'                          *                  
+  (il),-''  (li),'  ((!.-'                *                          *    
                                         ___                           
                            _[]_/____\__n_                            
                           |_____.--.__()_|                           
                           |LI  //# \\    |                           
                           |    \\__//    |                           
                           |     '--'     |         *                  
-                     *    |"|"|"|"|"|"|"| |     *                      
+                     *    |"|"|"|"|"|"|"| |     *                     
                           |~~~~~~~~~~~~~~|           *                
-                         ^^^^^^^^^^^^^^^^^^^^                          
-                        /  /  /  /  /  /  /  /                         
-                       /  /  /  /  /  /  /  /       *                  
-                               ( )       *                              
-    )" << endl;
+                           mini game ready!!                     
+    )";
 
     setColor(14);
     cout << "\n ──────────────────────────────────────────────────────────────────────────────\n";
@@ -70,7 +68,7 @@ void drawMenuUI(int color) {
     cout << "\t[1] 테트리스\t\t[2] 지뢰찾기\t\t[3] 미로찾기 게임\n";
     cout << "\t[4] 스네이크 게임\t[5] 스도쿠\t\t[6] 행맨\n";
     cout << "\t[7] 묵찌빠\t\t[8] 슈팅 게임\t\t[9] 퐁 게임\n";
-    cout << "\t[0] 종료\n";
+    cout << "\t[10] 게임 설명을 위한 챗봇\t\t\t[0] 종료\n";
 
     setColor(14);
     cout << " ──────────────────────────────────────────────────────────────────────────────\n";
@@ -87,8 +85,8 @@ void playPlaceholderGame(const string& name) {
 }
 
 int main() {
-    setFontSize(20, 40);   
-    resizeConsole();       //  콘솔 창 크기 조절
+    setFontSize();     // 글꼴/크기 설정
+    resizeConsole();   // 콘솔 창 넓게
 
     int choice;
     while (true) {
@@ -104,13 +102,14 @@ int main() {
         switch (choice) {
         case 1: playTetris(); break;
         case 2: playMinesweeper(); break;
-        case 3: playMaze_Solver(); break;
+        case 3: playMazeGame(); break;
         case 4: playSnake(); break;
         case 5: playSudoku(); break;
-        case 6: playPlaceholderGame("행맨"); break;
+        case 6: playHangmanGame(); break;
         case 7: playPlaceholderGame("묵찌빠"); break;
         case 8: playPlaceholderGame("슈팅 게임"); break;
         case 9: playPlaceholderGame("퐁 게임"); break;
+        case 10:chatbotMenu(); break;
         case 0:
             cout << "게임을 종료합니다!\n";
             return 0;

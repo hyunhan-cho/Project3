@@ -8,20 +8,26 @@
 
 using namespace std;
 
+void setColor(int text, int bg = 0) {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), (bg << 4) | text);
+}
+
 class Minesweeper {
 private:
     int rows, cols, totalMines;
-    vector<vector<char>> board;      // 사용자에게 보이는 보드
-    vector<vector<int>> mineBoard;   // 내부 보드 (-1은 지뢰, 그 외는 주변 지뢰 개수)
-    vector<vector<bool>> revealed;   // 열렸는지 여부
-    vector<vector<bool>> flagged;    // 깃발 표시 여부
+    int cellsToReveal, revealedCount;
+    vector<vector<char>> board;
+    vector<vector<int>> mineBoard;
+    vector<vector<bool>> revealed;
+    vector<vector<bool>> flagged;
 
 public:
-    Minesweeper(int size, int mines) : rows(size), cols(size), totalMines(mines) {
+    Minesweeper(int size, int mines) : rows(size), cols(size), totalMines(mines), revealedCount(0) {
         board = vector<vector<char>>(rows, vector<char>(cols, '.'));
         mineBoard = vector<vector<int>>(rows, vector<int>(cols, 0));
         revealed = vector<vector<bool>>(rows, vector<bool>(cols, false));
         flagged = vector<vector<bool>>(rows, vector<bool>(cols, false));
+        cellsToReveal = rows * cols - totalMines;
         srand(time(nullptr));
         placeMines();
         calculateNumbers();
@@ -56,6 +62,15 @@ public:
         }
     }
 
+    void revealAll() {
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j) {
+                if (mineBoard[i][j] == -1) board[i][j] = '*';
+                else board[i][j] = mineBoard[i][j] + '0';
+            }
+        }
+    }
+
     void printBoard() {
         cout << "   ";
         for (int j = 0; j < cols; j++) cout << setw(2) << j;
@@ -66,8 +81,14 @@ public:
         for (int i = 0; i < rows; i++) {
             cout << setw(2) << i << "|";
             for (int j = 0; j < cols; j++) {
-                cout << " " << board[i][j];
+                char ch = board[i][j];
+                if (ch == '*') setColor(12);
+                else if (ch == 'F') setColor(14);
+                else if (ch != '.') setColor(11);
+                else setColor(7);
+                cout << " " << ch;
             }
+            setColor(7);
             cout << "\n";
         }
     }
@@ -77,10 +98,21 @@ public:
         revealed[r][c] = true;
         if (mineBoard[r][c] == -1) {
             board[r][c] = '*';
-            return false; // Game over
+            return false;
         }
         else {
             board[r][c] = mineBoard[r][c] + '0';
+            revealedCount++;
+            if (revealedCount == cellsToReveal) {
+                revealAll();
+                system("cls");
+                printBoard();
+                setColor(10);
+                cout << "\n🎉 모든 칸을 열었습니다! 게임 클리어!\n";
+                setColor(7);
+                system("pause");
+                exit(0);
+            }
         }
         return true;
     }
@@ -92,11 +124,10 @@ public:
     }
 
     void play() {
-        bool running = true;
-        while (running) {
+        while (true) {
             system("cls");
             printBoard();
-            cout << "\nEnter command (r row col to reveal, f row col to flag): ";
+            cout << "\n명령 입력 (r 행 열: 열기, f 행 열: 깃발): ";
             char cmd;
             int r, c;
             cin >> cmd >> r >> c;
@@ -104,8 +135,11 @@ public:
             if (cmd == 'r') {
                 if (!reveal(r, c)) {
                     system("cls");
+                    revealAll();
                     printBoard();
-                    cout << "\n 지뢰를 밟았습니다! 게임 오버!\n";
+                    setColor(12);
+                    cout << "\n💥 지뢰를 밟았습니다! 게임 오버!\n";
+                    setColor(7);
                     break;
                 }
             }
@@ -113,7 +147,7 @@ public:
                 toggleFlag(r, c);
             }
             else {
-                cout << " 잘못된 명령입니다. 'r' 또는 'f'를 사용하세요.\n";
+                cout << "\n잘못된 명령입니다. 'r' 또는 'f'를 사용하세요.\n";
                 Sleep(1000);
             }
         }
@@ -122,36 +156,28 @@ public:
 
 void playMinesweeper() {
     int size, mines;
+    string name;
+
     system("cls");
+    cout << "지뢰찾기 게임에 오신 것을 환영합니다!\n\n";
+    cout << "플레이어 닉네임을 입력하세요: ";
+    cin >> name;
 
-    // 설명 출력
-    cout << " === 지뢰찾기 게임 설명 ===\n\n";
-    cout << " 목표: 모든 지뢰를 피해서 빈 칸을 모두 엽니다!\n\n";
-    cout << " 조작법:\n";
-    cout << " - 'r 행 열' : 해당 칸을 엽니다 (예: r 3 5)\n";
-    cout << " - 'f 행 열' : 해당 칸에 깃발을 꽂거나 해제합니다 (예: f 2 4)\n\n";
-    cout << " 지뢰를 밟으면 게임 오버!\n\n";
-    cout << " 게임 설정 화면으로 이동 중";
-
-    // 로딩 애니메이션 (5초)
+    cout << "\n" << name << " 님을 위한 게임 로딩 중";
     for (int i = 0; i < 5; ++i) {
         cout << ".";
         cout.flush();
-        Sleep(1000);
+        Sleep(500);
     }
 
     system("cls");
-
-    // 게임 설정 입력
-    cout << "=== 지뢰찾기 게임 시작 ===\n";
+    cout << "=== 지뢰찾기 게임 설정 ===\n";
     cout << "게임판 크기를 입력하세요 (예: 9): ";
     cin >> size;
     cout << "지뢰 개수를 입력하세요 (예: 10): ";
     cin >> mines;
 
-    // 게임 시작
     Minesweeper game(size, mines);
     game.play();
-
     system("pause");
 }

@@ -1,23 +1,36 @@
-#ifndef MAZE_SOLVER_H
+ï»¿#ifndef MAZE_SOLVER_H
 #define MAZE_SOLVER_H
 
+#include <iostream>
 #include <vector>
 #include <string>
-#include <utility>
+#include <stack>
+#include <cstdlib>
+#include <ctime>
 
-// ¹æÇâ º¤ÅÍ (»óÇÏÁÂ¿ì)
+#ifdef _WIN32
+#include <conio.h>
+#else
+#include <termios.h>
+#include <unistd.h>
+int _getch();
+#endif
+
+// ë°©í–¥ ì´ë™
 extern const int dr[4];
 extern const int dc[4];
 extern const char moveKeys[4];
 
-// platformº° getch Á¤ÀÇ´Â cpp¿¡¼­¸¸ ÇÔ
+// í™”ë©´ ì´ˆê¸°í™”
 void clearScreen();
+
+// ë¯¸ë¡œ ì¶œë ¥
 void printMaze(const std::vector<std::vector<int>>& maze, std::pair<int, int> player, std::pair<int, int> end);
-std::vector<std::pair<int, int>> bfsPath(const std::vector<std::vector<int>>& maze, std::pair<int, int> start, std::pair<int, int> end);
-std::vector<std::pair<int, int>> dfsPath(const std::vector<std::vector<int>>& maze, std::pair<int, int> start, std::pair<int, int> end);
-void animatePath(std::vector<std::vector<int>> maze, const std::vector<std::pair<int, int>>& path, std::pair<int, int> end);
 
-// ÀÌ ÇÔ¼ö¸¸ ¿ÜºÎ¿¡¼­ È£ÃâµÇ¸é µÊ
-void playMaze_Solver();
+// ë‚œì´ë„ë³„ ë¯¸ë¦¬ ì •ì˜ëœ ë¯¸ë¡œì—ì„œ ì„ íƒ
+std::vector<std::vector<int>> selectMaze(int level);
 
-#endif
+// ë¯¸ë¡œ ê²Œì„ ì‹¤í–‰
+void playMazeGame();
+
+#endif // MAZE_SOLVER_H

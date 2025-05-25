@@ -33,6 +33,12 @@
     <ClCompile Include="minesweeper.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="hangman.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="chatbot.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tetris.h">
@@ -48,6 +54,12 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="minesweeper.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="hangman.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="chatbot.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

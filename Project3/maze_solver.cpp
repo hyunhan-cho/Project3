@@ -1,28 +1,8 @@
-#include "maze_solver.h"
-#include <iostream>
-#include <vector>
-#include <string>
+ï»¿#include "maze_solver.h"
 #include <thread>
 #include <chrono>
 #include <algorithm>
-#include <queue>
-
-#ifdef _WIN32
-#include <conio.h>
-#else
-#include <termios.h>
-#include <unistd.h>
-int _getch() {
-    struct termios oldt, newt;
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-    int ch = getchar();
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-    return ch;
-}
-#endif
+#include <cctype>
 
 using namespace std;
 
@@ -43,136 +23,92 @@ void printMaze(const vector<vector<int>>& maze, pair<int, int> player, pair<int,
     int n = maze.size(), m = maze[0].size();
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < m; ++j) {
-            if (player.first == i && player.second == j) cout << 'P';
-            else if (end.first == i && end.second == j) cout << 'E';
-            else if (maze[i][j] == 1) cout << '#';
-            else cout << '.';
+            if (player.first == i && player.second == j) cout << "\033[1;32mP\033[0m";
+            else if (end.first == i && end.second == j) cout << "\033[1;34mE\033[0m";
+            else if (maze[i][j] == 1) cout << "\033[1;31m#\033[0m";
+            else cout << ".";
         }
         cout << '\n';
     }
-    cout << "Controls: W=Up  S=Down  A=Left  D=Right\n";
+    cout << "\nW: ìœ„  S: ì•„ëž˜  A: ì™¼ìª½  D: ì˜¤ë¥¸ìª½  Z: ë’¤ë¡œê°€ê¸°\n";
 }
 
-vector<pair<int, int>> bfsPath(const vector<vector<int>>& maze, pair<int, int> start, pair<int, int> end) {
-    int n = maze.size(), m = maze[0].size();
-    vector<vector<bool>> visited(n, vector<bool>(m, false));
-    vector<vector<pair<int, int>>> parent(n, vector<pair<int, int>>(m, { -1, -1 }));
-    queue<pair<int, int>> q;
-    q.push(start);
-    visited[start.first][start.second] = true;
+vector<vector<vector<int>>> easyMazes = {
+    {{0,0,1,0,0,0,1,0,0,0},{1,0,1,0,1,0,1,0,1,0},{1,0,0,0,1,0,0,0,1,0},{1,1,1,1,1,1,1,0,1,0},{0,0,0,0,0,0,1,0,1,0},{0,1,1,1,1,0,1,0,1,0},{0,0,0,0,1,0,1,0,1,0},{1,1,1,0,1,0,1,0,1,0},{0,0,0,0,1,0,0,0,0,0},{0,1,1,1,1,1,1,1,1,0}},
+    {{0,1,1,0,0,0,0,0,0,0},{0,1,0,0,1,1,1,1,1,0},{0,0,0,1,1,0,0,0,1,0},{1,1,0,1,0,0,1,0,1,0},{0,0,0,1,0,1,1,0,1,0},{0,1,1,1,0,0,0,0,1,0},{0,0,0,0,0,1,1,1,1,0},{0,1,1,1,1,1,0,0,0,0},{0,0,0,0,0,0,0,1,1,0},{1,1,1,1,1,1,0,0,0,0}},
+    {{0,0,0,0,0,0,0,0,0,0},{1,1,1,1,1,1,1,1,1,0},{0,0,0,0,0,0,0,0,1,0},{0,1,1,1,1,1,1,0,1,0},{0,1,0,0,0,0,0,0,1,0},{0,1,0,1,1,1,1,1,1,0},{0,0,0,1,0,0,0,0,0,0},{1,1,1,1,0,1,1,1,1,1},{0,0,0,0,0,1,0,0,0,0},{0,1,1,1,1,1,0,1,1,0}}
+};
 
-    while (!q.empty()) {
-        auto cur = q.front(); q.pop();
-        if (cur == end) break;
-        for (int i = 0; i < 4; ++i) {
-            int nr = cur.first + dr[i], nc = cur.second + dc[i];
-            if (nr < 0 || nr >= n || nc < 0 || nc >= m) continue;
-            if (maze[nr][nc] == 1 || visited[nr][nc]) continue;
-            visited[nr][nc] = true;
-            parent[nr][nc] = cur;
-            q.push({ nr, nc });
-        }
-    }
+vector<vector<vector<int>>> mediumMazes = {
+    {{0,0,1,1,1,1,1,1,1,1},{1,0,0,0,0,0,0,0,0,1},{1,1,1,1,1,1,1,1,0,1},{1,0,0,0,0,0,0,1,0,1},{1,0,1,1,1,1,0,1,0,1},{1,0,1,0,0,1,0,1,0,1},{1,0,1,0,1,1,0,1,0,1},{1,0,1,0,0,0,0,1,0,1},{1,0,1,1,1,1,1,1,0,1},{1,0,0,0,0,0,0,0,0,0}},
+    {{0,0,0,0,0,0,0,0,0,0},{1,1,1,1,1,1,1,1,1,0},{0,0,0,0,0,0,0,0,1,0},{0,1,1,1,1,1,1,0,1,0},{0,1,0,0,0,0,1,0,1,0},{0,1,0,1,1,0,1,0,1,0},{0,1,0,1,0,0,1,0,1,0},{0,1,0,1,1,1,1,0,1,0},{0,1,0,0,0,0,0,0,1,0},{0,0,0,1,1,1,1,1,1,0}},
+    {{0,1,1,1,1,1,1,1,1,1},{0,0,0,0,0,0,0,0,0,0},{1,1,1,1,1,1,1,1,1,0},{0,0,0,0,0,0,0,0,1,0},{0,1,1,1,1,1,1,0,1,0},{0,1,0,0,0,0,1,0,1,0},{0,1,0,1,1,0,1,0,1,0},{0,1,0,1,0,0,1,0,1,0},{0,1,0,1,1,1,1,0,1,0},{0,0,0,0,0,0,0,0,1,0}}
+};
 
-    vector<pair<int, int>> path;
-    if (!visited[end.first][end.second]) return path;
-    for (pair<int, int> at = end; at != make_pair(-1, -1); at = parent[at.first][at.second])
-        path.push_back(at);
-    reverse(path.begin(), path.end());
-    return path;
+vector<vector<vector<int>>> hardMazes = {
+    {{0,1,1,1,1,1,1,1,1,1},{0,0,0,0,0,0,0,0,0,1},{1,1,1,1,1,1,1,1,0,1},{1,0,0,0,0,0,0,1,0,1},{1,0,1,1,1,1,0,1,0,1},{1,0,1,0,0,1,0,1,0,1},{1,0,1,0,1,1,0,1,0,1},{1,0,1,0,0,0,0,1,0,1},{1,0,1,1,1,1,1,1,0,1},{1,0,0,0,0,0,0,0,0,0}},
+    {{0,0,0,1,1,1,1,1,1,1},{1,1,0,1,0,0,0,0,0,1},{1,1,0,1,0,1,1,1,0,1},{1,1,0,1,0,1,0,0,0,1},{1,1,0,1,0,1,0,1,1,1},{1,1,0,1,0,1,0,1,0,0},{1,1,0,1,0,1,0,1,0,1},{1,1,0,0,0,1,0,1,0,1},{1,1,1,1,1,1,0,1,0,1},{1,1,1,1,1,1,0,0,0,0}},
+    {{0,0,0,0,0,0,0,0,0,0},{1,1,1,1,1,1,1,1,1,0},{0,0,0,0,0,0,0,0,1,0},{0,1,1,1,1,1,1,0,1,0},{0,1,0,0,0,0,0,0,1,0},{0,1,0,1,1,1,1,1,1,0},{0,1,0,1,0,0,0,0,0,0},{0,1,0,1,0,1,1,1,1,1},{0,1,0,1,0,0,0,0,0,0},{0,0,0,0,0,1,1,1,1,0}}
+};
+
+vector<vector<int>> selectMaze(int level) {
+    int index = rand() % 3;
+    if (level == 1) return easyMazes[index];
+    if (level == 2) return mediumMazes[index];
+    return hardMazes[index];
 }
 
-bool dfsUtil(const vector<vector<int>>& maze, pair<int, int> cur, pair<int, int> end, vector<vector<bool>>& visited, vector<pair<int, int>>& path) {
-    if (cur == end) {
-        path.push_back(cur);
-        return true;
-    }
-    visited[cur.first][cur.second] = true;
-    path.push_back(cur);
-    for (int i = 0; i < 4; ++i) {
-        int nr = cur.first + dr[i], nc = cur.second + dc[i];
-        if (nr < 0 || nr >= maze.size() || nc < 0 || nc >= maze[0].size()) continue;
-        if (maze[nr][nc] == 1 || visited[nr][nc]) continue;
-        if (dfsUtil(maze, { nr, nc }, end, visited, path)) return true;
-    }
-    path.pop_back();
-    return false;
-}
-
-vector<pair<int, int>> dfsPath(const vector<vector<int>>& maze, pair<int, int> start, pair<int, int> end) {
-    vector<pair<int, int>> path;
-    vector<vector<bool>> visited(maze.size(), vector<bool>(maze[0].size(), false));
-    dfsUtil(maze, start, end, visited, path);
-    return path;
-}
-
-void animatePath(vector<vector<int>> maze, const vector<pair<int, int>>& path, pair<int, int> end) {
-    for (auto& step : path) {
-        printMaze(maze, step, end);
-        this_thread::sleep_for(chrono::milliseconds(300));
-    }
-    cout << "µµÂø ¿Ï·á!\n";
-}
-
-void playMaze_Solver() {
-    vector<vector<int>> maze = {
-        {0, 1, 0, 0, 0},
-        {0, 1, 0, 1, 0},
-        {0, 0, 0, 1, 0},
-        {1, 1, 0, 0, 0},
-        {0, 0, 0, 1, 0},
-    };
+void playMazeGame() {
+    srand(time(0));
     pair<int, int> player = { 0, 0 };
-    pair<int, int> end = { 4, 4 };
+    stack<pair<int, int>> history;
+    int level = 0;
 
-    cout << "¹Ì·Î °ÔÀÓ¿¡ ¿À½Å °ÍÀ» È¯¿µÇÕ´Ï´Ù!\n";
-    cout << "ÀÌµ¿ Å°: W=À§  S=¾Æ·¡  A=¿ÞÂÊ  D=¿À¸¥ÂÊ\n";
-    cout << "¸ñÇ¥: P¿¡¼­ E±îÁö µµ´ÞÇÏ¼¼¿ä!\n\n";
+    cout << "\në¯¸ë¡œ íƒí—˜ ê²Œìž„ì— ì˜¤ì‹  ê²ƒì„ í™˜ì˜í•©ë‹ˆë‹¤!\n";
+    cout << "ë‹¹ì‹ ì€ ë¯¸ë¡œì— ê°‡ížŒ íƒí—˜ê°€ìž…ë‹ˆë‹¤. íƒˆì¶œí•˜ë ¤ë©´ ì¶œêµ¬(E)ê¹Œì§€ ë„ë‹¬í•˜ì„¸ìš”!\n\n";
+    cout << "[ì¡°ìž‘ ë°©ë²• ì•ˆë‚´]\n";
+    cout << "  W: ìœ„ë¡œ ì´ë™\n";
+    cout << "  S: ì•„ëž˜ë¡œ ì´ë™\n";
+    cout << "  A: ì™¼ìª½ìœ¼ë¡œ ì´ë™\n";
+    cout << "  D: ì˜¤ë¥¸ìª½ìœ¼ë¡œ ì´ë™\n";
+    cout << "  Z: í•œ ì¹¸ ë’¤ë¡œê°€ê¸°\n\n";
+    cout << "[ëª¨ë“œ ì„ íƒ]\n";
+    cout << "  1: ì´ˆë³´ìž (ì‰¬ìš´ ê²½ë¡œ)\n";
+    cout << "  2: ì¤‘ê¸‰ìž (ë³´í†µ ê²½ë¡œ)\n";
+    cout << "  3: ê³ ê¸‰ìž (ë³µìž¡í•œ ê²½ë¡œ)\n\n";
 
-    cout << "[ÀÚµ¿ Å½»ö ¸ðµå ¼³¸í]\n";
-    cout << "B: BFS (ÃÖ´Ü °æ·Î Å½»ö)\n";
-    cout << "D: DFS (±íÀÌ ¿ì¼± Å½»ö)\n";
-    cout << "N: Á÷Á¢ ÀÌµ¿ (WASD ¼öµ¿ Á¶ÀÛ)\n\n";
-    cout << "½ÃÀÛÇÏ·Á¸é ¾Æ¹« Å°³ª ´©¸£¼¼¿ä...";
-    _getch();
-
-    cout << "\n¸ðµå¸¦ ¼±ÅÃÇÏ¼¼¿ä (B/D/N ÀÔ·Â): ";
-    char mode;
-    cin >> mode;
-    cin.ignore();
-    mode = toupper(mode);
-
-    vector<pair<int, int>> path;
-
-    if (mode == 'B') path = bfsPath(maze, player, end);
-    else if (mode == 'D') path = dfsPath(maze, player, end);
-
-    if (mode == 'B' || mode == 'D') {
-        if (path.empty()) cout << "°æ·Î¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù!\n";
-        else animatePath(maze, path, end);
-        system("pause");
-        return;
+    while (true) {
+        cout << "ì›í•˜ëŠ” ë‚œì´ë„ë¥¼ ì„ íƒí•˜ì„¸ìš” (1/2/3): ";
+        cin >> level;
+        if (level >= 1 && level <= 3) break;
+        cout << "ìž˜ëª»ëœ ìž…ë ¥ìž…ë‹ˆë‹¤. 1, 2 ë˜ëŠ” 3ì„ ìž…ë ¥í•˜ì„¸ìš”.\n";
     }
 
+    vector<vector<int>> maze = selectMaze(level);
+    pair<int, int> end = { maze.size() - 1, maze[0].size() - 1 };
     printMaze(maze, player, end);
-    this_thread::sleep_for(chrono::milliseconds(100));
 
     while (true) {
         char key = toupper(_getch());
-        for (int dir = 0; dir < 4; ++dir) {
-            if (key == moveKeys[dir]) {
-                int nr = player.first + dr[dir];
-                int nc = player.second + dc[dir];
-                if (nr >= 0 && nr < maze.size() && nc >= 0 && nc < maze[0].size() && maze[nr][nc] == 0) {
-                    player = { nr, nc };
+        if (key == 'Z' && !history.empty()) {
+            player = history.top(); history.pop();
+        }
+        else {
+            for (int dir = 0; dir < 4; ++dir) {
+                if (key == moveKeys[dir]) {
+                    int nr = player.first + dr[dir];
+                    int nc = player.second + dc[dir];
+                    if (nr >= 0 && nr < maze.size() && nc >= 0 && nc < maze[0].size() && maze[nr][nc] == 0) {
+                        history.push(player);
+                        player = { nr, nc };
+                    }
                 }
             }
         }
         printMaze(maze, player, end);
         if (player == end) {
-            cout << "ÃàÇÏÇÕ´Ï´Ù! µµÂøÁö¿¡ µµ´ÞÇß½À´Ï´Ù!\n";
+            cout << "\nì¶•í•˜í•©ë‹ˆë‹¤! ì¶œêµ¬ì— ë„ì°©í–ˆìŠµë‹ˆë‹¤!\n";
             break;
         }
     }
-    system("pause");
 }
