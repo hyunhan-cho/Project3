@@ -11,6 +11,7 @@
 #include "minesweeper.h"
 #include "hangman.h"
 #include "chatbot.h"
+#include "rpg_battle.h"
 
 using namespace std;
 
@@ -67,7 +68,7 @@ void drawMenuUI(int color) {
     setColor(10);
     cout << "\t[1] 테트리스\t\t[2] 지뢰찾기\t\t[3] 미로찾기 게임\n";
     cout << "\t[4] 스네이크 게임\t[5] 스도쿠\t\t[6] 행맨\n";
-    cout << "\t[7] 묵찌빠\t\t[8] 슈팅 게임\t\t[9] 퐁 게임\n";
+    cout << "\t[7] RPG게임 \t\t[8] 슈팅 게임\t\t[9] 묵찌빠\n";
     cout << "\t[10] 게임 설명을 위한 챗봇\t\t\t[0] 종료\n";
 
     setColor(14);
@@ -106,9 +107,9 @@ int main() {
         case 4: playSnake(); break;
         case 5: playSudoku(); break;
         case 6: playHangmanGame(); break;
-        case 7: playPlaceholderGame("묵찌빠"); break;
+        //case 7: playRpgbattleGame(); break;
         case 8: playPlaceholderGame("슈팅 게임"); break;
-        case 9: playPlaceholderGame("퐁 게임"); break;
+        case 9: playPlaceholderGame("묵찌빠"); break;
         case 10:chatbotMenu(); break;
         case 0:
             cout << "게임을 종료합니다!\n";
