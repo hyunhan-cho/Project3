@@ -5,6 +5,8 @@
 #include <ctime>
 #include <iomanip>
 #include <windows.h>
+#include <sstream>
+#include <conio.h>
 
 using namespace std;
 
@@ -28,7 +30,7 @@ public:
         revealed = vector<vector<bool>>(rows, vector<bool>(cols, false));
         flagged = vector<vector<bool>>(rows, vector<bool>(cols, false));
         cellsToReveal = rows * cols - totalMines;
-        srand(time(nullptr));
+        srand(static_cast<unsigned int>(time(nullptr)));
         placeMines();
         calculateNumbers();
     }
@@ -108,7 +110,7 @@ public:
                 system("cls");
                 printBoard();
                 setColor(10);
-                cout << "\n🎉 모든 칸을 열었습니다! 게임 클리어!\n";
+                cout << "\n모든 칸을 열었습니다! 게임 클리어!\n";
                 setColor(7);
                 system("pause");
                 exit(0);
@@ -127,28 +129,40 @@ public:
         while (true) {
             system("cls");
             printBoard();
-            cout << "\n명령 입력 (r 행 열: 열기, f 행 열: 깃발): ";
-            char cmd;
-            int r, c;
-            cin >> cmd >> r >> c;
+            cout << "\n명령 입력 (r 행 열: 열기, f 행 열: 깃발, ESC: 나가기)\n";
+            cout << ">> ";
 
-            if (cmd == 'r') {
-                if (!reveal(r, c)) {
-                    system("cls");
-                    revealAll();
-                    printBoard();
-                    setColor(12);
-                    cout << "\n💥 지뢰를 밟았습니다! 게임 오버!\n";
-                    setColor(7);
-                    break;
-                }
+            char cmd = _getch();  // 한 글자만 입력 받음
+            if (cmd == 27) { // ESC
+                cout << "\n메인 메뉴로 돌아갑니다...\n";
+                Sleep(1000);
+                return;
             }
-            else if (cmd == 'f') {
-                toggleFlag(r, c);
+
+            int r, c;
+            if (cmd == 'r' || cmd == 'f') {
+                cin >> r >> c;
+                cin.ignore();
+
+                if (cmd == 'r') {
+                    if (!reveal(r, c)) {
+                        system("cls");
+                        revealAll();
+                        printBoard();
+                        setColor(12);
+                        cout << "\n지뢰를 밟았습니다! 게임 오버!\n";
+                        setColor(7);
+                        break;
+                    }
+                }
+                else {
+                    toggleFlag(r, c);
+                }
             }
             else {
                 cout << "\n잘못된 명령입니다. 'r' 또는 'f'를 사용하세요.\n";
                 Sleep(1000);
+                cin.ignore(1000, '\n');
             }
         }
     }
@@ -162,6 +176,7 @@ void playMinesweeper() {
     cout << "지뢰찾기 게임에 오신 것을 환영합니다!\n\n";
     cout << "플레이어 닉네임을 입력하세요: ";
     cin >> name;
+    cin.ignore();
 
     cout << "\n" << name << " 님을 위한 게임 로딩 중";
     for (int i = 0; i < 5; ++i) {
@@ -176,6 +191,7 @@ void playMinesweeper() {
     cin >> size;
     cout << "지뢰 개수를 입력하세요 (예: 10): ";
     cin >> mines;
+    cin.ignore();
 
     Minesweeper game(size, mines);
     game.play();

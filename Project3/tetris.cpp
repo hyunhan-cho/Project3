@@ -110,7 +110,8 @@ public:
 
     void draw(Block& b) {
         system("cls");
-        cout << "====== TETRIS ======\t SCORE: " << score << "\n\n";
+        cout << "====== TETRIS ======\t SCORE: " << score << " / ";
+        cout << "뒤로 갈려면 ESC를 누르세요!!" << endl;
         for (int i = 0; i < HEIGHT; ++i) {
             for (int j = 0; j < WIDTH; ++j) {
                 int value = grid[i][j];
@@ -160,6 +161,12 @@ public:
     void processInput() {
         if (_kbhit()) {
             char first = _getch();
+
+            if (first == 27) {  // ESC 키
+                board.running = false;  // 게임 루프 탈출
+                return;
+            }
+
             if (first == -32) {
                 char arrow = _getch();
                 switch (arrow) {
@@ -214,18 +221,30 @@ void playTetris() {
 │ ◼ 블록이 쌓이면 게임 종료         │
 └────────────────────────────────────┘
 )" << endl;
-    cout << "\n▶ 게임을 시작하시겠습니까? (Y/N): ";
-    char input;
-    cin >> input;
-    if (input == 'Y' || input == 'y') {
-        cout << "\n▶ 게임을 시작합니다...\n";
-        Sleep(2000);
-        srand(time(0));
-        Game game;
-        game.gameLoop();
-    }
-    else {
-        cout << "\n▶ 테트리스 게임이 취소되었습니다.\n";
-        system("pause");
+
+    cout << "\n▶ 게임을 시작하시겠습니까? (Y: 시작, N: 취소, ESC: 뒤로가기)\n";
+    while (true) {
+        int input = _getch();
+        if (input == 27) {  // ESC
+            cout << "\n▶ 메인 메뉴로 돌아갑니다...\n";
+            Sleep(1000);
+            return;
+        }
+        else if (input == 'Y' || input == 'y') {
+            cout << "\n▶ 게임을 시작합니다...\n";
+            Sleep(2000);
+            srand(static_cast<unsigned int>(time(0)));
+            Game game;
+            game.gameLoop();
+			return; 
+        }
+        else if (input == 'N' || input == 'n') {
+            cout << "\n▶ 테트리스 게임이 취소되었습니다.\n";
+            system("pause");
+            return;
+        }
+        else {
+            cout << "\n잘못된 입력입니다. Y, N 또는 ESC 키를 눌러주세요.\n";
+        }
     }
 }

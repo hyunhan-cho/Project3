@@ -137,6 +137,7 @@
     <ClCompile Include="snake.cpp" />
     <ClCompile Include="sudoku.cpp" />
     <ClCompile Include="tetris.cpp" />
+    <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="chatbot.h" />
@@ -147,6 +148,7 @@
     <ClInclude Include="snake.h" />
     <ClInclude Include="sudoku.h" />
     <ClInclude Include="tetris.h" />
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
