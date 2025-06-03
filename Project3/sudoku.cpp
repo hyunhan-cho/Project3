@@ -7,72 +7,67 @@
 #include <thread>
 #include <algorithm>
 #include <random>
+#include <string>
+
+#ifdef _WIN32
+#include <conio.h>
+#else
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
+#endif
+
+#include "sudoku.h"
+#include "utils.h"
 
 using namespace std;
-using namespace chrono;
 
-void printGrid(const vector<vector<int>>& grid);
-bool isValidMove(const vector<vector<int>>& grid, int row, int col, int num);
-bool solveSudoku(vector<vector<int>>& grid);
-void initializeGrid(vector<vector<int>>& grid, vector<vector<int>>& fixedGrid, int clues);
-void playMainGame(vector<vector<int>>& grid, const vector<vector<int>>& fixedGrid, int timeLimitMinutes);
-bool validateNumberInput();
-void playSudoku();
-bool isSolvableMove(vector<vector<int>> grid, int row, int col, int num);
+#ifdef _WIN32
+int kbhit_nonblock() {
+    return _kbhit();
+}
+#else
+int kbhit_nonblock() {
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
 
-int hain() {
-    playSudoku();
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+    ch = getchar();
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+    if (ch != EOF) {
+        ungetc(ch, stdin);
+        return 1;
+    }
     return 0;
 }
+#endif
 
-void playSudoku() {
-    system("cls");
-    srand(static_cast<unsigned int>(time(0)));
+// 이하 게임 함수 정의들
 
-    vector<vector<int>> grid(9, vector<int>(9, 0));
-    vector<vector<int>> fixedGrid(9, vector<int>(9, 0));
-
-    int choice;
-    int clues = 30;  // default medium
-    int timeLimitMinutes = 15;
-
-    cout << "Choose Difficulty:\n";
-    cout << "1. Easy (10 min)\n2. Medium (15 min)\n3. Hard (20 min)\n";
-    cout << "Enter choice: ";
-    cin >> choice;
-
-    if (!validateNumberInput() || choice < 1 || choice > 3) {
-        cout << "Invalid choice. Defaulting to Medium.\n";
-        choice = 2;
-    }
-
-    switch (choice) {
-    case 1:
-        clues = 36;
-        timeLimitMinutes = 10;
-        break;
-    case 2:
-        clues = 30;
-        timeLimitMinutes = 15;
-        break;
-    case 3:
-        clues = 24;
-        timeLimitMinutes = 20;
-        break;
-    }
-
-    initializeGrid(grid, fixedGrid, clues);
-
-    cout << "\nStarting Sudoku game...\n";
-    playMainGame(grid, fixedGrid, timeLimitMinutes);
-}
-
-void printGrid(const vector<vector<int>>& grid) {
+void printGrid(const vector<vector<int>>& grid, const vector<vector<int>>& fixedGrid) {
     cout << "  +===================================+\n";
     for (int i = 0; i < 9; i++) {
         cout << "  | ";
         for (int j = 0; j < 9; j++) {
-            cout << (grid[i][j] == 0 ? ' ' : char(grid[i][j] + '0')) << " | ";
+            if (grid[i][j] == 0) {
+                cout << "  | ";
+            }
+            else if (fixedGrid[i][j] != 0) {
+                cout << "\033[34m" << grid[i][j] << "\033[0m | ";
+            }
+            else {
+                cout << "\033[33m" << grid[i][j] << "\033[0m | ";
+            }
         }
         cout << "\n";
         if ((i + 1) % 3 == 0 && i != 8)
@@ -86,7 +81,6 @@ void printGrid(const vector<vector<int>>& grid) {
 bool isValidMove(const vector<vector<int>>& grid, int row, int col, int num) {
     int startRow = 3 * (row / 3);
     int startCol = 3 * (col / 3);
-
     for (int x = 0; x < 9; x++) {
         if (grid[row][x] == num || grid[x][col] == num ||
             grid[startRow + x / 3][startCol + x % 3] == num) {
@@ -99,13 +93,11 @@ bool isValidMove(const vector<vector<int>>& grid, int row, int col, int num) {
 bool solveSudoku(vector<vector<int>>& grid) {
     std::random_device rd;
     std::mt19937 g(rd());
-
     for (int row = 0; row < 9; row++) {
         for (int col = 0; col < 9; col++) {
             if (grid[row][col] == 0) {
                 vector<int> numbers = { 1,2,3,4,5,6,7,8,9 };
                 std::shuffle(numbers.begin(), numbers.end(), g);
-
                 for (int num : numbers) {
                     if (isValidMove(grid, row, col, num)) {
                         grid[row][col] = num;
@@ -151,97 +143,182 @@ bool isSolvableMove(vector<vector<int>> grid, int row, int col, int num) {
 }
 
 void playMainGame(vector<vector<int>>& grid, const vector<vector<int>>& fixedGrid, int timeLimitMinutes) {
-    auto startTime = steady_clock::now();
-    int row, col, num;
+    auto startTime = std::chrono::steady_clock::now();
+    int wrongAttempts = 0;
+    int row = 0, col = 0, num = 0;
+    int inputStep = 0;
 
     while (true) {
-        system("cls");
+        auto now = std::chrono::steady_clock::now();
+        int totalRemainingSeconds = timeLimitMinutes * 60 - static_cast<int>(
+            std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count());
 
-        auto now = steady_clock::now();
-        auto elapsed = duration_cast<seconds>(now - startTime).count();
-        int totalRemainingSeconds = timeLimitMinutes * 60 - static_cast<int>(elapsed);
+        if (totalRemainingSeconds <= 0) {
+            clearScreen();
+            cout << "\n시간 종료! 퍼즐을 제시간에 풀지 못했습니다.\n";
+            printGrid(grid, fixedGrid);
+            pauseScreen();
+            break;
+        }
+
         int minutes = totalRemainingSeconds / 60;
         int seconds = totalRemainingSeconds % 60;
 
-        if (totalRemainingSeconds <= 0) {
-            cout << "\nTime's up! You failed to solve the puzzle in time.\n";
-            printGrid(grid);
-            cout << "\nPress Enter to exit...";
-            cin.ignore();
-            cin.get();
+        clearScreen();
+        cout << "남은 시간: " << minutes << "분 " << seconds << "초\n";
+        cout << "오답 횟수: " << wrongAttempts << " / 3\n";
+        cout << "ESC를 누르면 메인 메뉴로 돌아갑니다.\n\n";
+        printGrid(grid, fixedGrid);
+
+        if (wrongAttempts >= 3) {
+            cout << "\n오답 3회 초과! 게임 오버.\n";
+            pauseScreen();
             break;
         }
 
-        cout << " Remaining time: " << minutes << "m " << seconds << "s\n";
+        if (inputStep == 0) cout << "\n행 입력 (1-9, 자동 풀이:-1): ";
+        else if (inputStep == 1) cout << "열 입력 (1-9): ";
+        else cout << "숫자 입력 (1-9): ";
 
-        cout << "\nCurrent Sudoku Grid:\n";
-        printGrid(grid);
+        std::string inputStr;
+        bool gotInput = false, isEscPressed = false;
 
-        cout << "\nEnter row (1-9) or -1 to auto-solve: ";
-        cin >> row;
-        if (!validateNumberInput()) continue;
-
-        if (row == -1) {
-            if (solveSudoku(grid)) {
-                cout << "\nSolved Sudoku Grid:\n";
-                printGrid(grid);
+        while (!gotInput) {
+#ifdef _WIN32
+            if (_kbhit()) {
+                int ch = _getch();
+                if (ch == 27) {
+                    isEscPressed = true;
+                    break;
+                }
+                ungetc(ch, stdin);
+                cin >> inputStr;
+                gotInput = true;
             }
-            else {
-                cout << "\nNo solution exists.\n";
+#else
+            if (kbhit_nonblock()) {
+                int ch = getchar();
+                if (ch == 27) {
+                    isEscPressed = true;
+                    break;
+                }
+                ungetc(ch, stdin);
+                cin >> inputStr;
+                gotInput = true;
             }
-            cout << "\nPress Enter to exit...";
-            cin.ignore();
-            cin.get();
+#endif
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        if (isEscPressed) {
+            cout << "\nESC를 눌렀습니다. 메인 메뉴로 돌아갑니다.\n";
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             break;
         }
 
-        cout << "Enter column (1-9): ";
-        cin >> col;
-        if (!validateNumberInput()) continue;
-
-        cout << "Enter number (1-9): ";
-        cin >> num;
-        if (!validateNumberInput()) continue;
-
-        if (row < 1 || row > 9 || col < 1 || col > 9 || num < 1 || num > 9) {
-            cout << "Invalid input range.\n";
-            system("pause");
+        int value;
+        try {
+            value = std::stoi(inputStr);
+        }
+        catch (...) {
+            cout << "\n숫자를 입력하세요.\n";
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             continue;
         }
 
-        if (fixedGrid[row - 1][col - 1] != 0) {
-            cout << "This cell is fixed.\n";
-            system("pause");
-            continue;
+        if (inputStep == 0) {
+            row = value;
+            if (row == -1) {
+                solveSudoku(grid);
+                clearScreen();
+                cout << "\n해결된 스도쿠 판:\n";
+                printGrid(grid, fixedGrid);
+                pauseScreen();
+                break;
+            }
+            inputStep = 1;
         }
-
-        if (!isValidMove(grid, row - 1, col - 1, num)) {
-            cout << "This number violates Sudoku rules.\n";
-            system("pause");
-            continue;
+        else if (inputStep == 1) {
+            col = value;
+            inputStep = 2;
         }
+        else {
+            num = value;
+            if (row < 1 || row > 9 || col < 1 || col > 9 || num < 1 || num > 9) {
+                cout << "잘못된 입력 범위입니다.\n";
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                inputStep = 0;
+                continue;
+            }
+            if (fixedGrid[row - 1][col - 1] != 0) {
+                cout << "이 칸은 고정된 숫자입니다.\n";
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                inputStep = 0;
+                continue;
+            }
+            if (!isValidMove(grid, row - 1, col - 1, num)) {
+                wrongAttempts++;
+                cout << "스도쿠 규칙 위반입니다.\n";
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                inputStep = 0;
+                continue;
+            }
+            if (!isSolvableMove(grid, row - 1, col - 1, num)) {
+                wrongAttempts++;
+                cout << "이 숫자로는 풀이가 불가능합니다.\n";
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                inputStep = 0;
+                continue;
+            }
+            grid[row - 1][col - 1] = num;
+            bool complete = true;
+            for (int i = 0; i < 9 && complete; i++)
+                for (int j = 0; j < 9; j++)
+                    if (grid[i][j] == 0)
+                        complete = false;
 
-        if (!isSolvableMove(grid, row - 1, col - 1, num)) {
-            cout << "This move leads to no solution. Try another number.\n";
-            system("pause");
-            continue;
+            if (complete) {
+                clearScreen();
+                cout << "\n축하합니다! 퍼즐을 완성했습니다.\n";
+                printGrid(grid, fixedGrid);
+                pauseScreen();
+                break;
+            }
+            inputStep = 0;
         }
+    }
+}
 
-        grid[row - 1][col - 1] = num;
+void playSudoku() {
+    while (true) {
+        clearScreen();
+        srand(static_cast<unsigned int>(time(0)));
+        vector<vector<int>> grid(9, vector<int>(9, 0));
+        vector<vector<int>> fixedGrid(9, vector<int>(9, 0));
+        int choice, clues = 30, timeLimitMinutes = 15;
 
-        bool complete = true;
-        for (int i = 0; i < 9 && complete; i++)
-            for (int j = 0; j < 9; j++)
-                if (grid[i][j] == 0)
-                    complete = false;
+        cout << "난이도 선택:\n";
+        cout << "1. 쉬움 (10분)\n2. 보통 (15분)\n3. 어려움 (20분)\n";
+        cout << "선택 입력 (종료: 0): ";
+        cin >> choice;
 
-        if (complete) {
-            cout << "\n Congratulations! You completed the puzzle.\n";
-            printGrid(grid);
-            cout << "\nPress Enter to exit...";
-            cin.ignore();
-            cin.get();
+        if (!validateNumberInput() || choice < 0 || choice > 3) {
+            cout << "잘못된 선택입니다. 기본 난이도(보통)으로 시작합니다.\n";
+            choice = 2;
+        }
+        if (choice == 0) {
+            cout << "게임을 종료합니다.\n";
             break;
         }
+
+        switch (choice) {
+        case 1: clues = 36; timeLimitMinutes = 10; break;
+        case 2: clues = 30; timeLimitMinutes = 15; break;
+        case 3: clues = 24; timeLimitMinutes = 20; break;
+        }
+
+        initializeGrid(grid, fixedGrid, clues);
+        cout << "\n스도쿠 게임을 시작합니다...\n";
+        playMainGame(grid, fixedGrid, timeLimitMinutes);
     }
 }

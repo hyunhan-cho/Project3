@@ -1,5 +1,8 @@
 // utils.h
-#pragma once
+#ifndef UTILS_H
+#define UTILS_H
 
 void clearScreen();
-#pragma once
+void pauseScreen();
+
+#endif

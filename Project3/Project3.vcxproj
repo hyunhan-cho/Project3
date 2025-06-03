@@ -133,7 +133,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="maze_solver.cpp" />
     <ClCompile Include="minesweeper.cpp" />
-    <ClCompile Include="rpg_battle.cpp" />
+    <ClCompile Include="spaceship.cpp" />
     <ClCompile Include="snake.cpp" />
     <ClCompile Include="sudoku.cpp" />
     <ClCompile Include="tetris.cpp" />
@@ -144,7 +144,7 @@
     <ClInclude Include="hangman.h" />
     <ClInclude Include="maze_solver.h" />
     <ClInclude Include="minesweeper.h" />
-    <ClInclude Include="rpg_battle.h" />
+    <ClInclude Include="spaceship.h" />
     <ClInclude Include="snake.h" />
     <ClInclude Include="sudoku.h" />
     <ClInclude Include="tetris.h" />

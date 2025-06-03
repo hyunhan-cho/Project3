@@ -39,7 +39,7 @@
     <ClCompile Include="chatbot.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="rpg_battle.cpp">
+    <ClCompile Include="spaceship.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="utils.cpp">
@@ -68,7 +68,7 @@
     <ClInclude Include="chatbot.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="rpg_battle.h">
+    <ClInclude Include="spaceship.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="utils.h">
