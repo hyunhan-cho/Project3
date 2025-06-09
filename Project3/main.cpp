@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <string>
 #include <thread>
+#include <ctime>  // srand 추가
 
 // 구현된 게임 헤더
 #include "tetris.h"
@@ -16,28 +17,21 @@
 
 using namespace std;
 
-
-
-// 콘솔 창 크기 조절 (더 넓고 길게)
 void resizeConsole() {
-    system("mode con: cols=140 lines=45"); // 넓게 확보
+    system("mode con: cols=140 lines=45");
 }
 
-// 콘솔 글자 크기 조절 (폰트: Consolas, 글자당 폭 설정)
 void setFontSize(int width = 12, int height = 28) {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_FONT_INFOEX cfi;
     cfi.cbSize = sizeof(cfi);
     GetCurrentConsoleFontEx(hOut, FALSE, &cfi);
-
-    cfi.dwFontSize.X = width;      // 가로 글자 폭
-    cfi.dwFontSize.Y = height;     // 세로 글자 높이
+    cfi.dwFontSize.X = width;
+    cfi.dwFontSize.Y = height;
     wcscpy_s(cfi.FaceName, L"Consolas");
-
     SetCurrentConsoleFontEx(hOut, FALSE, &cfi);
 }
 
-// 게임 선택 UI 출력
 void drawMenuUI(int color) {
     system("cls");
     setColor(color);
@@ -76,7 +70,6 @@ void drawMenuUI(int color) {
     cout << "\n  ▶ 두근두근 당신의 선택은???(번호를 입력해주세요)>> ";
 }
 
-// 아직 구현 안 된 게임용 메시지
 void playPlaceholderGame(const string& name) {
     system("cls");
     cout << "▶ [" << name << "] 게임은 아직 준비 중입니다!\n";
@@ -84,12 +77,12 @@ void playPlaceholderGame(const string& name) {
 }
 
 int main() {
-    setFontSize();     // 글꼴/크기 설정
-    resizeConsole();   // 콘솔 창 넓게
+    setFontSize();
+    resizeConsole();
+    srand(static_cast<unsigned int>(time(0))); // ✅ 난수 시드 설정
 
     int choice;
     while (true) {
-        // 메뉴 번쩍이는 효과
         for (int blink = 0; blink < 3; ++blink) {
             drawMenuUI(11); Sleep(150);
             drawMenuUI(13); Sleep(150);
@@ -108,7 +101,7 @@ int main() {
         case 7: playSpaceship(); break;
         case 8: playPlaceholderGame("슈팅 게임"); break;
         case 9: playPlaceholderGame("묵찌빠"); break;
-        case 10:enhancedChatbotMenu(); break;
+        case 10: enhancedChatbotMenu(); break;
         case 0:
             cout << "게임을 종료합니다!\n";
             return 0;
