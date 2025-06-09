@@ -88,7 +88,7 @@ public:
         }
         asteroids.swap(survivors);
 
-        draw();
+
     }
 
     // 우주선이 차지하는 상대 좌표 목록 (6개):
@@ -188,6 +188,11 @@ public:
         for (int i = 0; i < bombCount; i++) {
             cout << "B ";
         }
+
+        for (int i = bombCount; i < 10; i++) {
+            cout << "  ";
+        }
+
         cout << "\n";
 
         SetConsoleTextAttribute(hOut, 7);

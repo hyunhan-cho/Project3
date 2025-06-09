@@ -1,5 +1,5 @@
 ﻿#include "maze_solver.h"
-#include "utils.h"
+#include "utils.h"  // clearScreen() 함수 사용
 
 #include <iostream>
 #include <vector>
@@ -30,6 +30,7 @@ int _getch() {
 #endif
 
 using namespace std;
+using namespace chrono;
 
 const int dr[4] = { -1, 1, 0, 0 };
 const int dc[4] = { 0, 0, -1, 1 };
@@ -37,9 +38,9 @@ const char moveKeys[4] = { 'W', 'S', 'A', 'D' };
 
 void printMaze(const vector<vector<int>>& maze, pair<int, int> player, pair<int, int> end) {
     clearScreen();
-    size_t n = maze.size(), m = maze[0].size();
-    for (size_t i = 0; i < n; ++i) {
-        for (size_t j = 0; j < m; ++j) {
+    int n = static_cast<int>(maze.size()), m = static_cast<int>(maze[0].size());
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
             if (player.first == i && player.second == j) cout << "\033[1;32mP\033[0m";
             else if (end.first == i && end.second == j) cout << "\033[1;34mE\033[0m";
             else if (maze[i][j] == 1) cout << "\033[1;31m#\033[0m";
@@ -51,20 +52,21 @@ void printMaze(const vector<vector<int>>& maze, pair<int, int> player, pair<int,
 }
 
 bool isSolvable(const vector<vector<int>>& maze, pair<int, int> start, pair<int, int> end) {
-    size_t n = maze.size(), m = maze[0].size();
+    int n = static_cast<int>(maze.size()), m = static_cast<int>(maze[0].size());
     vector<vector<bool>> visited(n, vector<bool>(m, false));
     queue<pair<int, int>> q;
     q.push(start);
     visited[start.first][start.second] = true;
 
     while (!q.empty()) {
-        pair<int, int> pos = q.front(); q.pop();
-        int r = pos.first;
-        int c = pos.second;
+        pair<int, int> curr = q.front(); q.pop();
+        int r = curr.first;
+        int c = curr.second;
         if (r == end.first && c == end.second) return true;
+
         for (int dir = 0; dir < 4; ++dir) {
             int nr = r + dr[dir], nc = c + dc[dir];
-            if (nr >= 0 && nr < (int)n && nc >= 0 && nc < (int)m && maze[nr][nc] == 0 && !visited[nr][nc]) {
+            if (nr >= 0 && nr < n && nc >= 0 && nc < m && maze[nr][nc] == 0 && !visited[nr][nc]) {
                 visited[nr][nc] = true;
                 q.push(make_pair(nr, nc));
             }
@@ -80,9 +82,9 @@ vector<vector<int>> generateMaze(int size) {
     maze[0][0] = 0;
 
     while (!st.empty()) {
-        pair<int, int> cur = st.top();
-        int r = cur.first;
-        int c = cur.second;
+        pair<int, int> curr = st.top();
+        int r = curr.first;
+        int c = curr.second;
 
         vector<pair<int, int>> neighbors;
         for (int d = 0; d < 4; ++d) {
@@ -92,13 +94,14 @@ vector<vector<int>> generateMaze(int size) {
                 neighbors.push_back(make_pair(nr, nc));
             }
         }
+
         if (!neighbors.empty()) {
-            pair<int, int> next = neighbors[rand() % neighbors.size()];
-            int nr = next.first;
-            int nc = next.second;
+            int idx = rand() % neighbors.size();
+            int nr = neighbors[idx].first;
+            int nc = neighbors[idx].second;
             maze[(r + nr) / 2][(c + nc) / 2] = 0;
             maze[nr][nc] = 0;
-            st.push(next);
+            st.push(make_pair(nr, nc));
         }
         else {
             st.pop();
@@ -108,7 +111,7 @@ vector<vector<int>> generateMaze(int size) {
 }
 
 void playMazeGame() {
-    srand(static_cast<unsigned int>(time(0))); // <- 캐스팅으로 경고 제거
+    srand(static_cast<unsigned int>(time(0)));
     pair<int, int> player = make_pair(0, 0);
     stack<pair<int, int>> history;
 
@@ -144,6 +147,8 @@ void playMazeGame() {
         player = make_pair(0, 0);
         history = stack<pair<int, int>>();
         pair<int, int> end = make_pair(size - 1, size - 1);
+
+        auto startTime = steady_clock::now();
         printMaze(maze, player, end);
 
         while (true) {
@@ -154,8 +159,10 @@ void playMazeGame() {
                 cout << "\nESC 입력됨: 메인 메뉴로 돌아갑니다...\n";
                 return;
             }
+
             if (key == 'Z' && !history.empty()) {
-                player = history.top(); history.pop();
+                player = history.top();
+                history.pop();
             }
             else {
                 for (int dir = 0; dir < 4; ++dir) {
@@ -169,9 +176,13 @@ void playMazeGame() {
                     }
                 }
             }
+
             printMaze(maze, player, end);
             if (player == end) {
+                auto endTime = steady_clock::now();
+                int clearTime = static_cast<int>(duration_cast<seconds>(endTime - startTime).count());
                 cout << "\033[1;33m\n축하합니다! 출구에 도착했습니다!\033[0m\n";
+                cout << "\033[1;36m클리어 시간: \033[0m" << clearTime << "초\n";
                 break;
             }
         }

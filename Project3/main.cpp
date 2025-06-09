@@ -12,13 +12,11 @@
 #include "hangman.h"
 #include "chatbot.h"
 #include "spaceship.h"
+#include "utils.h"
 
 using namespace std;
 
-// 콘솔 텍스트 색상 설정
-void setColor(int color) {
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
-}
+
 
 // 콘솔 창 크기 조절 (더 넓고 길게)
 void resizeConsole() {
@@ -110,7 +108,7 @@ int main() {
         case 7: playSpaceship(); break;
         case 8: playPlaceholderGame("슈팅 게임"); break;
         case 9: playPlaceholderGame("묵찌빠"); break;
-        case 10:chatbotMenu(); break;
+        case 10:enhancedChatbotMenu(); break;
         case 0:
             cout << "게임을 종료합니다!\n";
             return 0;

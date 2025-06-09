@@ -1,8 +1,9 @@
-// utils.cpp
 #include "utils.h"
 #include <iostream>
+
 #ifdef _WIN32
 #include <cstdlib>
+#include <windows.h>
 #else
 #include <unistd.h>
 #endif
@@ -21,5 +22,10 @@ void pauseScreen() {
     std::cin.get();
 }
 
-
-
+void setColor(int color) {
+#ifdef _WIN32
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
+#else
+    std::cout << "\033[1;" << color << "m";
+#endif
+}

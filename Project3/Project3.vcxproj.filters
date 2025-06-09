@@ -45,6 +45,9 @@
     <ClCompile Include="utils.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="chatbot_ai.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tetris.h">

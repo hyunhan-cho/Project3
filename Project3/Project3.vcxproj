@@ -129,6 +129,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="chatbot.cpp" />
+    <ClCompile Include="chatbot_ai.cpp" />
     <ClCompile Include="hangman.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="maze_solver.cpp" />
