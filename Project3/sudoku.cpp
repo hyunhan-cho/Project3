@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <random>
 #include <string>
+#include "utils.h"
 
 #ifdef _WIN32
 #include <conio.h>
@@ -15,18 +16,24 @@
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
-#endif
 
-#include "sudoku.h"
-#include "utils.h"
+#endif
 
 using namespace std;
 
+// 함수 프로토타입 추가
+bool solveSudoku(vector<vector<int>>& grid);
+void generateSudoku(vector<vector<int>>& grid, vector<vector<int>>& fixedGrid, int clues);
+void playMainGame(vector<vector<int>>& grid, const vector<vector<int>>& fixedGrid, int timeLimitMinutes);
+
+
+// 비차단 키 입력 함수 (Windows)
 #ifdef _WIN32
 int kbhit_nonblock() {
     return _kbhit();
 }
 #else
+// Unix 계열 시스템용 비차단 키 입력 함수
 int kbhit_nonblock() {
     struct termios oldt, newt;
     int ch;
@@ -52,8 +59,7 @@ int kbhit_nonblock() {
 }
 #endif
 
-// 이하 게임 함수 정의들
-
+// 그리드 출력 함수
 void printGrid(const vector<vector<int>>& grid, const vector<vector<int>>& fixedGrid) {
     cout << "  +===================================+\n";
     for (int i = 0; i < 9; i++) {
@@ -78,6 +84,7 @@ void printGrid(const vector<vector<int>>& grid, const vector<vector<int>>& fixed
     cout << "  +===================================+\n";
 }
 
+// 유효한 이동인지 확인하는 함수
 bool isValidMove(const vector<vector<int>>& grid, int row, int col, int num) {
     int startRow = 3 * (row / 3);
     int startCol = 3 * (col / 3);
@@ -89,19 +96,71 @@ bool isValidMove(const vector<vector<int>>& grid, int row, int col, int num) {
     }
     return true;
 }
+// 스도쿠 퍼즐 생성 함수
+void generateSudoku(vector<vector<int>>& grid, vector<vector<int>>& fixedGrid, int clues) {
+    // 초기화
+    grid = vector<vector<int>>(9, vector<int>(9, 0));
+    fixedGrid = vector<vector<int>>(9, vector<int>(9, 0));
 
+    // 난수 생성기 초기화
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> dis(1, 9);
+
+    // 대각선 3x3 박스에 숫자 채우기
+    for (int box = 0; box < 3; box++) {
+        int startRow = box * 3;
+        int startCol = box * 3;
+        vector<int> nums = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        shuffle(nums.begin(), nums.end(), gen);
+
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                grid[startRow + i][startCol + j] = nums[i * 3 + j];
+            }
+        }
+    }
+
+    // 스도쿠 퍼즐 해결
+    solveSudoku(grid);
+
+    // 힌트 숫자 랜덤 제거
+    vector<pair<int, int>> allCells;
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            allCells.push_back({ i, j });
+        }
+    }
+    shuffle(allCells.begin(), allCells.end(), gen);
+
+    // 고정된 힌트 숫자 설정
+    for (int i = 0; i < clues; i++) {
+        int row = allCells[i].first;
+        int col = allCells[i].second;
+        fixedGrid[row][col] = grid[row][col];
+    }
+
+    // 나머지 숫자 제거
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            if (fixedGrid[i][j] == 0) {
+                grid[i][j] = 0;
+            }
+        }
+    }
+}
+
+// 스도쿠 퍼즐 해결 함수
 bool solveSudoku(vector<vector<int>>& grid) {
-    std::random_device rd;
-    std::mt19937 g(rd());
     for (int row = 0; row < 9; row++) {
         for (int col = 0; col < 9; col++) {
             if (grid[row][col] == 0) {
-                vector<int> numbers = { 1,2,3,4,5,6,7,8,9 };
-                std::shuffle(numbers.begin(), numbers.end(), g);
-                for (int num : numbers) {
+                for (int num = 1; num <= 9; num++) {
                     if (isValidMove(grid, row, col, num)) {
                         grid[row][col] = num;
-                        if (solveSudoku(grid)) return true;
+                        if (solveSudoku(grid)) {
+                            return true;
+                        }
                         grid[row][col] = 0;
                     }
                 }
@@ -111,49 +170,28 @@ bool solveSudoku(vector<vector<int>>& grid) {
     }
     return true;
 }
-
-void initializeGrid(vector<vector<int>>& grid, vector<vector<int>>& fixedGrid, int clues) {
-    solveSudoku(grid);
-    int remaining = 81 - clues;
-    while (remaining > 0) {
-        int i = rand() % 9;
-        int j = rand() % 9;
-        if (grid[i][j] != 0) {
-            grid[i][j] = 0;
-            remaining--;
-        }
-    }
-    for (int i = 0; i < 9; i++)
-        for (int j = 0; j < 9; j++)
-            fixedGrid[i][j] = grid[i][j];
-}
-
-bool validateNumberInput() {
-    if (cin.fail()) {
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        return false;
-    }
-    return true;
-}
-
-bool isSolvableMove(vector<vector<int>> grid, int row, int col, int num) {
-    grid[row][col] = num;
-    return solveSudoku(grid);
-}
+#include <thread>
+#include <atomic>
+#include <mutex>
 
 void playMainGame(vector<vector<int>>& grid, const vector<vector<int>>& fixedGrid, int timeLimitMinutes) {
-    auto startTime = std::chrono::steady_clock::now();
+    std::atomic<bool> gameRunning(true);
+    std::atomic<int> remainingSeconds(timeLimitMinutes * 60);
+
+    std::thread timerThread([&]() {
+        while (gameRunning && remainingSeconds > 0) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            remainingSeconds--;
+        }
+        });
+
     int wrongAttempts = 0;
-    int row = 0, col = 0, num = 0;
-    int inputStep = 0;
+    int inputStage = 0;
+    int row = -1, col = -1;
 
-    while (true) {
-        auto now = std::chrono::steady_clock::now();
-        int totalRemainingSeconds = timeLimitMinutes * 60 - static_cast<int>(
-            std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count());
-
-        if (totalRemainingSeconds <= 0) {
+    while (gameRunning) {
+        if (remainingSeconds <= 0) {
+            gameRunning = false;
             clearScreen();
             cout << "\n시간 종료! 퍼즐을 제시간에 풀지 못했습니다.\n";
             printGrid(grid, fixedGrid);
@@ -161,164 +199,249 @@ void playMainGame(vector<vector<int>>& grid, const vector<vector<int>>& fixedGri
             break;
         }
 
-        int minutes = totalRemainingSeconds / 60;
-        int seconds = totalRemainingSeconds % 60;
-
         clearScreen();
-        cout << "남은 시간: " << minutes << "분 " << seconds << "초\n";
+        cout << "남은 시간: " << remainingSeconds / 60 << "분 "
+            << remainingSeconds % 60 << "초\n";
         cout << "오답 횟수: " << wrongAttempts << " / 3\n";
-        cout << "ESC를 누르면 메인 메뉴로 돌아갑니다.\n\n";
         printGrid(grid, fixedGrid);
 
-        if (wrongAttempts >= 3) {
-            cout << "\n오답 3회 초과! 게임 오버.\n";
-            pauseScreen();
+        // 입력 안내 메시지 (자동 풀이 옵션 추가)
+        switch (inputStage) {
+        case 0:
+            cout << "\n숫자(1-9)를 입력하여 행을 선택하세요.\n";
+            cout << "-1: 자동 풀이\n";
+            break;
+        case 1:
+            cout << "\n선택된 행: " << row + 1 << "\n";
+            cout << "열을 입력하세요 (1-9): \n";
+            break;
+        case 2:
+            cout << "\n선택된 행: " << row + 1
+                << ", 선택된 열: " << col + 1 << "\n";
+            cout << "입력할 숫자를 선택하세요 (1-9): \n";
             break;
         }
+        cout << "ESC: 메인 메뉴로 돌아가기\n";
 
-        if (inputStep == 0) cout << "\n행 입력 (1-9, 자동 풀이:-1): ";
-        else if (inputStep == 1) cout << "열 입력 (1-9): ";
-        else cout << "숫자 입력 (1-9): ";
+        if (_kbhit()) {
+            int ch = _getch();
 
-        std::string inputStr;
-        bool gotInput = false, isEscPressed = false;
-
-        while (!gotInput) {
-#ifdef _WIN32
-            if (_kbhit()) {
-                int ch = _getch();
-                if (ch == 27) {
-                    isEscPressed = true;
-                    break;
-                }
-                ungetc(ch, stdin);
-                cin >> inputStr;
-                gotInput = true;
-            }
-#else
-            if (kbhit_nonblock()) {
-                int ch = getchar();
-                if (ch == 27) {
-                    isEscPressed = true;
-                    break;
-                }
-                ungetc(ch, stdin);
-                cin >> inputStr;
-                gotInput = true;
-            }
-#endif
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-
-        if (isEscPressed) {
-            cout << "\nESC를 눌렀습니다. 메인 메뉴로 돌아갑니다.\n";
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            break;
-        }
-
-        int value;
-        try {
-            value = std::stoi(inputStr);
-        }
-        catch (...) {
-            cout << "\n숫자를 입력하세요.\n";
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            continue;
-        }
-
-        if (inputStep == 0) {
-            row = value;
-            if (row == -1) {
-                solveSudoku(grid);
-                clearScreen();
-                cout << "\n해결된 스도쿠 판:\n";
-                printGrid(grid, fixedGrid);
-                pauseScreen();
+            if (ch == 27) {
+                gameRunning = false;
                 break;
             }
-            inputStep = 1;
-        }
-        else if (inputStep == 1) {
-            col = value;
-            inputStep = 2;
+
+            // 자동 풀이 추가
+            if (inputStage == 0 && ch == '-') {
+                ch = _getch();
+                if (ch == '1') {
+                    // 자동 풀이 로직
+                    if (solveSudoku(grid)) {
+                        gameRunning = false;
+                        clearScreen();
+                        cout << "\n자동으로 퍼즐을 해결했습니다!\n";
+                        printGrid(grid, fixedGrid);
+                        pauseScreen();
+                    }
+                    else {
+                        cout << "퍼즐을 해결할 수 없습니다.\n";
+                        pauseScreen();
+                    }
+                    break;
+                }
+            }
+
+            // 기존 숫자 입력 로직 (이전 코드와 동일)
+            if (ch >= '1' && ch <= '9') {
+                switch (inputStage) {
+                case 0:
+                    row = ch - '0' - 1;
+                    inputStage = 1;
+                    break;
+
+                case 1:
+                    col = ch - '0' - 1;
+                    inputStage = 2;
+                    break;
+
+                case 2:
+                    int num = ch - '0';
+
+                    // 기존 유효성 검사 및 입력 로직 (이전 코드와 동일)
+                    if (fixedGrid[row][col] != 0) {
+                        cout << "고정된 숫자는 변경할 수 없습니다!\n";
+                        pauseScreen();
+                        inputStage = 0;
+                        continue;
+                    }
+
+                    if (isValidMove(grid, row, col, num)) {
+                        grid[row][col] = num;
+
+                        // 퍼즐 완성 확인 로직
+                        bool isPuzzleComplete = true;
+                        for (int i = 0; i < 9; i++) {
+                            for (int j = 0; j < 9; j++) {
+                                if (grid[i][j] == 0) {
+                                    isPuzzleComplete = false;
+                                    break;
+                                }
+                            }
+                            if (!isPuzzleComplete) break;
+                        }
+
+                        if (isPuzzleComplete) {
+                            gameRunning = false;
+                            clearScreen();
+                            cout << "\n축하합니다! 퍼즐을 완성했습니다!\n";
+                            printGrid(grid, fixedGrid);
+                            pauseScreen();
+                            break;
+                        }
+                    }
+                    else {
+                        wrongAttempts++;
+                        cout << "잘못된 입력입니다. 다시 시도하세요.\n";
+                        pauseScreen();
+                    }
+
+                    // 오답 횟수 초과
+                    if (wrongAttempts >= 3) {
+                        gameRunning = false;
+                        cout << "오답 3회 초과! 게임 오버.\n";
+                        pauseScreen();
+                        break;
+                    }
+
+                    inputStage = 0;
+                    break;
+                }
+            }
         }
         else {
-            num = value;
-            if (row < 1 || row > 9 || col < 1 || col > 9 || num < 1 || num > 9) {
-                cout << "잘못된 입력 범위입니다.\n";
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                inputStep = 0;
-                continue;
-            }
-            if (fixedGrid[row - 1][col - 1] != 0) {
-                cout << "이 칸은 고정된 숫자입니다.\n";
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                inputStep = 0;
-                continue;
-            }
-            if (!isValidMove(grid, row - 1, col - 1, num)) {
-                wrongAttempts++;
-                cout << "스도쿠 규칙 위반입니다.\n";
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                inputStep = 0;
-                continue;
-            }
-            if (!isSolvableMove(grid, row - 1, col - 1, num)) {
-                wrongAttempts++;
-                cout << "이 숫자로는 풀이가 불가능합니다.\n";
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                inputStep = 0;
-                continue;
-            }
-            grid[row - 1][col - 1] = num;
-            bool complete = true;
-            for (int i = 0; i < 9 && complete; i++)
-                for (int j = 0; j < 9; j++)
-                    if (grid[i][j] == 0)
-                        complete = false;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
 
-            if (complete) {
-                clearScreen();
-                cout << "\n축하합니다! 퍼즐을 완성했습니다.\n";
-                printGrid(grid, fixedGrid);
-                pauseScreen();
-                break;
-            }
-            inputStep = 0;
+    // 스레드 정리
+    if (timerThread.joinable()) {
+        timerThread.join();
+    }
+}
+
+
+// 난이도 선택 함수
+int chooseDifficulty() {
+    while (true) {
+        clearScreen();
+        cout << "=== 스도쿠 난이도 선택 ===\n";
+        cout << "1. 쉬움 (40개 힌트)\n";
+        cout << "2. 보통 (30개 힌트)\n";
+        cout << "3. 어려움 (20개 힌트)\n";
+        cout << "4. 뒤로 가기\n";
+        cout << "난이도를 선택하세요: ";
+
+        int choice;
+        cin >> choice;
+
+        switch (choice) {
+        case 1: return 40;
+        case 2: return 30;
+        case 3: return 20;
+        case 4: return -1;
+        default:
+            cout << "잘못된 선택입니다. 다시 선택해주세요.\n";
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     }
 }
 
+// 시간 선택 함수
+int chooseTimeLimit() {
+    while (true) {
+        clearScreen();
+        cout << "=== 제한 시간 선택 ===\n";
+        cout << "1. 10분\n";
+        cout << "2. 20분\n";
+        cout << "3. 30분\n";
+        cout << "4. 뒤로 가기\n";
+        cout << "제한 시간을 선택하세요: ";
+
+        int choice;
+        cin >> choice;
+
+        switch (choice) {
+        case 1: return 10;
+        case 2: return 20;
+        case 3: return 30;
+        case 4: return -1;
+        default:
+            cout << "잘못된 선택입니다. 다시 선택해주세요.\n";
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+    }
+}
+
+// 메인 메뉴 함수
+// 함수 프로토타입
+void playSudoku();
+
+// 함수 구현
 void playSudoku() {
     while (true) {
         clearScreen();
-        srand(static_cast<unsigned int>(time(0)));
-        vector<vector<int>> grid(9, vector<int>(9, 0));
-        vector<vector<int>> fixedGrid(9, vector<int>(9, 0));
-        int choice, clues = 30, timeLimitMinutes = 15;
+        cout << "=== 스도쿠 게임 ===\n";
+        cout << "1. 새 게임 시작\n";
+        cout << "2. 게임 종료\n";
+        cout << "메뉴를 선택하세요: ";
 
-        cout << "난이도 선택:\n";
-        cout << "1. 쉬움 (10분)\n2. 보통 (15분)\n3. 어려움 (20분)\n";
-        cout << "선택 입력 (종료: 0): ";
+        int choice;
         cin >> choice;
 
-        if (!validateNumberInput() || choice < 0 || choice > 3) {
-            cout << "잘못된 선택입니다. 기본 난이도(보통)으로 시작합니다.\n";
-            choice = 2;
-        }
-        if (choice == 0) {
-            cout << "게임을 종료합니다.\n";
+        switch (choice) {
+        case 1: {
+            int clues = chooseDifficulty();
+            if (clues == -1) break;
+
+            int timeLimit = chooseTimeLimit();
+            if (timeLimit == -1) break;
+
+            vector<vector<int>> grid(9, vector<int>(9, 0));
+            vector<vector<int>> fixedGrid(9, vector<int>(9, 0));
+
+            generateSudoku(grid, fixedGrid, clues);
+            playMainGame(grid, fixedGrid, timeLimit);
             break;
         }
-
-        switch (choice) {
-        case 1: clues = 36; timeLimitMinutes = 10; break;
-        case 2: clues = 30; timeLimitMinutes = 15; break;
-        case 3: clues = 24; timeLimitMinutes = 20; break;
+        case 2:
+            cout << "게임을 종료합니다.\n";
+            return;
+        default:
+            cout << "잘못된 선택입니다. 다시 선택해주세요.\n";
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-
-        initializeGrid(grid, fixedGrid, clues);
-        cout << "\n스도쿠 게임을 시작합니다...\n";
-        playMainGame(grid, fixedGrid, timeLimitMinutes);
     }
+}
+
+// main 함수 수정
+int Sudokuhain() {
+    // 랜덤 시드 설정
+    srand(static_cast<unsigned>(time(nullptr)));
+
+    // 게임 시작
+    playSudoku();
+
+    return 0;
+}
+
+
+// 메인 함수
+int hain() {
+    // 랜덤 시드 설정
+    srand(static_cast<unsigned>(time(nullptr)));
+
+    // 메인 메뉴 실행
+    playSudoku();
+
+    return 0;
 }
