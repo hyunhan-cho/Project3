@@ -36,9 +36,6 @@
     <ClCompile Include="hangman.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="chatbot.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="spaceship.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>

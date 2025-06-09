@@ -1,8 +1,12 @@
-﻿#include <iostream>
+﻿
+#define NOMINMAX
+
+#include <iostream>
 #include <windows.h>
 #include <string>
 #include <thread>
-#include <ctime>  // srand 추가
+#include <ctime>
+#include <limits>
 
 // 구현된 게임 헤더
 #include "tetris.h"
@@ -17,6 +21,13 @@
 
 using namespace std;
 
+// 함수 선언
+void resizeConsole();
+void setFontSize(int width, int height);
+void drawMenuUI(int color);
+void playPlaceholderGame(const string& name);
+
+// 콘솔 창 크기 및 폰트 설정
 void resizeConsole() {
     system("mode con: cols=140 lines=45");
 }
@@ -36,25 +47,25 @@ void drawMenuUI(int color) {
     system("cls");
     setColor(color);
     cout << R"(
-    ("`-''-/").___..--''"`-._                 *                             
-     `6_ 6  )   `-.  (     ).`-.__.`)     *                  *             
-     (_Y_.)'  ._   )  `._ `. ``-..-'             *                       
-   _..`--'_..-_/  /--'_.' ,'                          *                  
-  (il),-''  (li),'  ((!.-'                *                          *    
-                                        ___                           
-                           _[]_/____\__n_                            
-                          |_____.--.__()_|                           
-                          |LI  //# \\    |                           
-                          |    \\__//    |                           
-                          |     '--'     |         *                  
-                     *    |"|"|"|"|"|"|"| |     *                     
-                          |~~~~~~~~~~~~~~|           *                
-                           mini game ready!!                     
+    ("`-''-/").___..--''"`-._                                *
+     `6_ 6  )   `-.  (    ).`-.__.`)    * *
+     (_Y_.)'  ._   )  `._ `. ``-..-'                   *
+   _..`--'_..-_/  /--'_.' ,'
+  (il),-''  (li),'  ((!.-'          * *
+                                        ___
+                               _[]_/____\__n_
+                              |_____.--.__()_|
+                              |LI  //# \\    |
+                              |    \\__//    |
+                              |     '--'     |          *
+                            * |"|"|"|"|"|"|"| |    *
+                              |~~~~~~~~~~~~~~|
+                                mini game ready!!
     )";
 
     setColor(14);
     cout << "\n ──────────────────────────────────────────────────────────────────────────────\n";
-    cout << "                            ## Select Your Mini Game! ##\n";
+    cout << "                                  ## Select Your Mini Game! ##\n";
     cout << " ──────────────────────────────────────────────────────────────────────────────\n";
 
     setColor(10);
@@ -79,7 +90,7 @@ void playPlaceholderGame(const string& name) {
 int main() {
     setFontSize();
     resizeConsole();
-    srand(static_cast<unsigned int>(time(0))); // ✅ 난수 시드 설정
+    srand(static_cast<unsigned int>(time(0)));
 
     int choice;
     while (true) {
@@ -90,6 +101,8 @@ int main() {
         }
 
         cin >> choice;
+        
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
         switch (choice) {
         case 1: playTetris(); break;

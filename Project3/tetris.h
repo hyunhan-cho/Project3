@@ -1,4 +1,4 @@
-﻿// 📄 tetris.h
+﻿// tetris.h
 #pragma once
 
 void playTetris();
